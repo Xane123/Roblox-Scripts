@@ -1,7 +1,7 @@
 --[[
 	ROYALE HIGH ACCESSORY PRESERVER V2		|
 	PROUDLY MADE BY XANE MYERS IN APRIL 2025|
-	LAST UPDATED APRIL 16TH, 2025			|
+	LAST UPDATED MAY 6TH, 2025				|
 	----------------------------------------/
 	An amazing psuedo-sequel to an already powerful script, used for saving various (mostly 3D) assets from Roblox experiences,
 	including but no longer limited to Royale High! Run this script (preferably using Infinite Fun's 'rhsave' command) then tap
@@ -1161,25 +1161,64 @@ local function AssignDescriptiveRHItemName(_isFurni : boolean, Target : Model, _
 		Though it looks like both use the same toggle/variation seleciton GUI, clothes and furniture actually use separate copies of the
 		same GUI design; Everything inside both of the frames has the same layout, so this script will change between them depending on
 		what it's targetting.
+		
+		For clothes, it gets worse; Trying on items in the shop and modifying owned clothes use two different copies of the same GUI!
 	]]--
-	local temp_clothingGuiRef				= PlayerGui:FindFirstChild("PreviewToggles")
-	if temp_clothingGuiRef then
-		GUIBase_Clothing					= temp_clothingGuiRef:FindFirstChild("PreviewTogglesFrame")
+	local temp_clothesGUI1					= IterateChildHierarchy(PlayerGui, {	-- Trying out customized clothing in the shop...
+		{
+			Name = "PreviewToggles",
+			Type = "FindFirstChild"
+		},
+		{
+			Name = "PreviewTogglesFrame",
+			Type = "FindFirstChild"
+		}
+	})
+	local temp_clothesGUI2					= IterateChildHierarchy(PlayerGui, {	-- Customizing owned/worn clothes...
+		{
+			Name = "CharacterCreation",
+			Type = "FindFirstChild"
+		},
+		{
+			Name = "Inventory",
+			Type = "FindFirstChild"
+		},
+		{
+			Name = "TogglesFrameNEW",
+			Type = "FindFirstChild"
+		}
+	})
+	
+	-- Prioritize the shop's version of the customization GUI, but if it isn't visible, try to use the other copy of it.
+	if temp_clothesGUI1 and temp_clothesGUI1.Visible  then
+		GUIBase_Clothing					= temp_clothesGUI1
+	elseif temp_clothesGUI2 and temp_clothesGUI2.Visible then
+		GUIBase_Clothing					= temp_clothesGUI2
 	end
 	
-	local temp_furniDecorModeGui 			= PlayerGui:FindFirstChild("DecorateModeGui")
-	if temp_furniDecorModeGui then	-- This GUI only exists in Campus 3's Castle Dorms and Campus 4, and will just be nil outside of them.
-		GUIBase_Furniture					= temp_furniDecorModeGui:FindFirstChild("TogglesFrameNEW")
+	local temp_furniDecorModeGui				= IterateChildHierarchy(PlayerGui, {
+		{
+			Name = "DecorateModeGui",
+			Type = "FindFirstChild"
+		},
+		{
+			Name = "TogglesFrameNEW",
+			Type = "FindFirstChild"
+		}
+	})
+	if temp_furniDecorModeGui and temp_furniDecorModeGui.Visible then	-- This GUI only exists in Campus 3's Castle Dorms and Campus 4, nil outside of 'em.
+		GUIBase_Furniture					= temp_furniDecorModeGui
 	end
 	
 	-- Clear these now-unnecessary variables now, in case it frees up memory.
 	temp_furniDecorModeGui					= nil
-	temp_clothingGuiRef						= nil
+	temp_clothesGUI1						= nil
+	temp_clothesGUI2						= nil
 	
 	-- Dynamically point the following code to the clothing or furniture toggle/variation customization GUI, depending on our target type.
 	GUI_Base								= if not _isFurni then GUIBase_Clothing else GUIBase_Furniture
 	
-	if GUI_Base.Visible then	-- Is the preview GUI visible? We'll grab detailed info from it!
+	if GUI_Base then	-- Is the preview GUI visible? We'll grab detailed info from it! (This variable will only be set if one of them was visible.)
 		local ItemName : TextLabel			= GUI_Base:FindFirstChild("ItemName")
 		
 		-- Figure out the player's current toggle number by checking each sub-frame's UIStroke visibility. Selected toggles are outlined.
@@ -2563,7 +2602,7 @@ local function ExitAccessoryPreserver()
 	GUI_Window.Visible			= false
 	GUICarrier_Commands.Visible	= false
 	DisplayToast("Thank you. Have a nice day/night!", "👋", 2.25)
-	task.wait(2.25)
+	task.wait(2.5)
 	
 	GUI_Base:Destroy()
 	script:Destroy()
