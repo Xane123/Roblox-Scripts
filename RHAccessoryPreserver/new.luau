@@ -1,7 +1,7 @@
 --[[
 	ROYALE HIGH ACCESSORY PRESERVER V2		|
 	PROUDLY MADE BY XANE MYERS IN APRIL 2025|
-	LAST UPDATED MAY 6TH, 2025				|
+	LAST UPDATED DECEMBER 23RD, 2025		|
 	----------------------------------------/
 	An amazing psuedo-sequel to an already powerful script, used for saving various (mostly 3D) assets from Roblox experiences,
 	including but no longer limited to Royale High! Run this script (preferably using Infinite Fun's 'rhsave' command) then tap
@@ -881,6 +881,46 @@ temp_z_newGUI2 = Instance.new("UICorner")
 temp_z_newGUI2.CornerRadius = UDim.new(0.25, 0)
 temp_z_newGUI2.Parent = Button_RefreshWindow
 
+local ToastHolder = Instance.new("Frame")ToastHolder.BackgroundColor3 = Color3.new(1, 1, 1)
+ToastHolder.BackgroundTransparency = 1
+ToastHolder.BorderSizePixel = 0
+ToastHolder.Size = UDim2.fromScale(1, 1)
+ToastHolder.Visible = true
+ToastHolder.ZIndex = 10
+ToastHolder.Name = "ToastContainer"
+ToastHolder.Parent = GUI_Base
+
+-- Instances used for the new "toasts" (which are more basic TextLabels now).
+local ToastTemplate = Instance.new("TextLabel")
+ToastTemplate.Font = Enum.Font.Highway
+ToastTemplate.Text = "This should not appear to the end user. (Hi, exploiter!)"
+ToastTemplate.TextColor3 = COLOR_WHITE
+ToastTemplate.TextSize = 28
+ToastTemplate.TextStrokeTransparency = 0
+ToastTemplate.TextTransparency = 0.375
+ToastTemplate.TextWrapped = true
+ToastTemplate.TextXAlignment = Enum.TextXAlignment.Left
+ToastTemplate.TextYAlignment = Enum.TextYAlignment.Bottom
+ToastTemplate.AnchorPoint = Vector2.one / 2
+ToastTemplate.BackgroundTransparency = 1
+ToastTemplate.BorderSizePixel = 0
+ToastTemplate.Position = UDim2.fromScale(0.5, 0.5)
+ToastTemplate.Size = UDim2.new(0.825, 0, 0.2, 0)
+ToastTemplate.Visible = false
+ToastTemplate.Name = "Template"
+ToastTemplate.Parent = ToastHolder
+
+temp_z_newGUI1 = Instance.new("UIListLayout")
+temp_z_newGUI1.HorizontalAlignment = Enum.HorizontalAlignment.Center
+temp_z_newGUI1.SortOrder = Enum.SortOrder.LayoutOrder
+temp_z_newGUI1.VerticalAlignment = Enum.VerticalAlignment.Center
+temp_z_newGUI1.Parent = ToastHolder
+
+local ToastLastNumber = Instance.new("IntValue")
+ToastLastNumber.Name = "LastToastNum"
+ToastLastNumber.Value = 0
+ToastLastNumber.Parent = ToastHolder
+
 --[[
 	Annoyingly, ScreenGui instances' children don't render inside OF a ScreenGui, since it "cloaks" or claims them. Because of
 	how they work, any 3D or 2D content shown in the window GUI is first copied to this Folder verbatim, then can be freely
@@ -936,6 +976,7 @@ local SaveBaseFolder : Folder				= TryOrCreateFolder(game:GetService("Lighting")
 -- Free up the temporary variables' values again, in case Roblox garbage-collects these Instance references.
 temp_z_newGUI1 = nil
 temp_z_newGUI2 = nil
+temp_z_newGUI3 = nil
 
 -- VARIABLES
 type ToastDefinition						= {
@@ -980,7 +1021,6 @@ local PlayerSelectParams						: {
 }
 
 --[[
-	<custom><nb>
 	Checks for Royale High's "EquippedStorage" folder, its standard "category" sub-folders, then a specific player's folders within
 	those. If any of them are found, references to them will be included in the returned dictionary entry.
 ]]--
@@ -1029,7 +1069,6 @@ local function GetESFolders(_playerName : string) :
 end
 
 --[[
-	<custom><nb>
 	Tries to remove any player-specific modifications (other than clothing colors), turning every saved clothing Model
 	and full character model into a neutral, light-grey humanoid with a basic name and default Roblox smile face.
 	
@@ -1097,7 +1136,7 @@ local function FixRHCharacter(_root : Model, _param : FixRHCharParams)
 	end
 end
 
--- STATIC DATA
+-- CONSTANTS (PART 2)
 type ValidIDValues							= string|number
 
 type DetectedItemEntry						= {
@@ -1118,6 +1157,19 @@ local EMPTY_ITEM_ENTRY : DetectedItemEntry	= {
 	Player									= nil,
 	ListInstance							= nil,
 	SelectEvent								= nil
+}
+
+--[[
+	This array of dictionary entries is used to override variation choices that incorrectly list the wrong number, which would confuse
+	this script. As a workaround, this table stores variation numbers for the troublesome strings; If the user tries to save an item
+	listed here, any incorrect variation numbers will be silently redirected to the hardcoded values here. If a RH update breaks this
+	function, let me know and I'll update the relevant strings here, or remove entries if they fixed the broken strings.
+]]--
+local VarOverrideDB							= {
+	["Avrilla's Combat Doll Boots"]			= {
+		["(1/3) Garters: No Straps"]		= 2,	-- Variation category 1
+		["(1/3) Garters: Off"]				= 3
+	}
 }
 
 local GAME_ID								= game.GameId
@@ -1244,19 +1296,50 @@ local function AssignDescriptiveRHItemName(_isFurni : boolean, Target : Model, _
 		
 		-- Next, iterate through this item's variation "categories" and get their information by using some "string magic".
 		for num,category in temp_varUIList do
+			local temp_trimmedName : string = category.Name
+			local VariationStr:string	= category.CurrentCycleItem.Text	-- This includes both the number and name ("(1/5) Angel").
+			local VariationNumber : number = 0	-- The selection's order. If this is 0, it's grabbed from a string later, else it's used as-is.
+			
+			-- If this variation category starts with "Cycle " (like most do), remove that from the name we store.
+			if temp_trimmedName:sub(1,6) == "Cycle " then temp_trimmedName = temp_trimmedName:sub(7) end
 			local temp_newEntry	= {
-				CategoryName	= category.Name:sub(7),	-- Remove the first 6 letters (which are usually "Cycle ").
+				CategoryName	= temp_trimmedName,
 				VarName			= "Unknown",
 				VarNumber		= 0
 			}
 			
-			-- Unfortunately, Royale High crams both the current variation and its name into the same string, so the cryptic-looking
-			-- "code" below figures out where the left-most number and name are, and slices the original string up, storing the info.
-			local VariationStr:string	= category.CurrentCycleItem.Text	-- This includes both the number and name ("(1/5) Angel").
-			local slashPos				= VariationStr:find("/",1,true)		-- The slash separates the current and total variations.
-			local _,rightParenLoc		= VariationStr:find(") ",1,true)	-- The right parentheses and space are the name's left bound.
 			
-			temp_newEntry.VarNumber		= tonumber(VariationStr:sub(2,slashPos-1))
+			--[[
+				Some variations have inaccurate "numbers" for specific items, like Avrilla's shoes' first variation category, which uses '1' for
+				all three garter variations. Since I can't figure out how the client receives the list of variations' names from the server (which
+				I've found after decompiling some RemoteEvent communications that I can't pin-point), this script relies exclusively on the text
+				written on the button.
+				
+				Therefore, any problematic variation names are stored in this script's "variation override database". If the current item's on that
+				list, and any variation has one of the incorrect labels, this will grab and use an alternate variation number instead of parsing
+				and trusting the displayed label.
+			]]--
+			if VarOverrideDB[ItemName.Text] then
+				for key : string, value : number in VarOverrideDB[ItemName.Text] do
+					if VariationStr == key then	-- Does the "choice"'s text match one of the entries? If so, treat it as its cooresponding number/value.
+						VariationNumber = value
+						break
+					end
+				end
+			end
+			
+			--[[
+				If an alt. variation number wasn't forced above, check the variation's label text and extract the number near its start. Annoyingly,
+				this number and the variation's name are both in the same text, so they have to be extracted below, the latter always handled even if
+				this code block doesn't run.
+			]]--
+			if VariationNumber <= 0 then
+				local slashPos			= VariationStr:find("/",1,true)		-- The slash separates the current and total variations.
+				temp_newEntry.VarNumber	= tonumber(VariationStr:sub(2,slashPos-1))
+			else
+				temp_newEntry.VarNumber	= VariationNumber
+			end
+			local _,rightParenLoc		= VariationStr:find(") ",1,true)	-- The right parentheses and space are the name's left bound.
 			temp_newEntry.VarName		= VariationStr:sub(rightParenLoc+1)
 			
 			table.insert(VariationInfo, temp_newEntry)	-- Insert this entry at its position in RH's list.
@@ -1314,6 +1397,21 @@ local function AssignDescriptiveRHItemName(_isFurni : boolean, Target : Model, _
 	return Target	-- Return the modified Model back to the caller, even if this is technically pointless.
 end
 
+--[[
+	Scans the workspace for a Part with a numerical (user ID) name with the "InnerDorm" Model present, as that's only included when
+	the player is standing close enough to or inside of a dorm to "load" it. More research is required for the newer, more flexible
+	Campus 4.0 lockers and Sleepover Tower beds, which have a very similar structure to dorms internally (including a
+	"DormFurniture" Model and "OuterDorm" for the locker's door), and they have different prefixes to their base Parts.
+]]
+local function GetLoadedDorm()
+	-- Find a Part with a numerical name that contains an "InnerDorm" model. This doesn't exist unless a dorm is loaded, our goal.
+	local temp_foundDorm : Model?	= nil
+	for _, inst in  workspace:GetChildren() do
+		if inst:IsA("Part") and tonumber(inst.Name) and inst:FindFirstChild("InnerDorm") then temp_foundDorm = inst; break end
+	end
+	return temp_foundDorm
+end
+
 -- Default detection categories/types, which should work for most Roblox games that use standard characters and tools.
 local DefaultDetectTypes					= {
 	"Chara",										-- R15 characters linked to players.
@@ -1338,6 +1436,9 @@ local GameOverrideData						= {
 ]]--
 local PlaceOverrideData						= {
 	[735030788]								= {	-- Royale High Campus 4
+		"DormRH"								-- Allow saving the currently-loaded dorm room (if one is loaded).
+	},
+	[79319660271166]						= {	-- Royale High Campus 4 (Creative/Freeplay servers)
 		"DormRH"								-- Allow saving the currently-loaded dorm room (if one is loaded).
 	},
 	[1067660288]							= {	-- Royale High Campus 3 Castle Dorms
@@ -1558,18 +1659,39 @@ local DetectTypeDefs : {ScanType}			= {
 		new debug ID since RH spawns a new model instead of modifying the existing one. This makes it impossible to save
 		multiple versions of a single item when "trying it out", so make sure this is the only copy of that item in your dorm
 		if planning to save different variation and toggle combinations.
-	]]--
+		
+		TODO: Consider adding another ScanType for Campus 4.0's lockers and Sleepover Tower beds, which act like dorms and
+		reuse the same GUI (as far as I can tell). Here are the details for each type, in case there aren't any sample RBXL files
+		with loaded and unloaded beds/lockers to reference when implementing the new "categories" here.
+		
+		SLEEPOVER TOWER BEDS
+		Every bed in the Sleepover Tower interior appears and remains visible as long as the player stays close enough to that area,
+		vanishing along with the room itself when they walk or teleport out of it. All beds are children of the workspace, with this
+		naming format: "RH4Bed_[UserID]". I don't know if these parts stay in the workspace while outside of the interior/room like
+		dorms, but its contents are somewhat similar to dorms, but its "InnerDorm" model isn't a direct child of the Part.
+		* DormFurniture (contains all placed items, named after GUIDs just like in dorms)
+		* OuterDorm (the bed's frame and mattress)
+		* Sleepover Bed
+			* InnerDorm (a somewhat pointless Model with invisible Parts, used to snap bed-specific furniture like end pieces and blankets to it)
+		* DormAvailability (contains the ProximityPrompt to claim the bed)
+		* DormRegion
+		* StreamRegion (unused, identical to DormRegion)
+		
+		Unclaimed beds are just named "BedSpawn", so they are very easy to exclude from results.
+		
+		LOCKERS
+		Campus 4 lockers aren't completely known about yet, as I haven't saved a loaded one yet. Claimed lockers use the naming
+		format "RH4Locker_[User ID]" and contain an OuterDorm model, just its door and outer "case" layer (in "DontHinge"). A
+		DormFurniture model is likely used when the locker's loaded, but I can't confirm that yet. When a locker's unclaimed,
+		it's named "LockerSpawn".
+	]]-- 
 	["DormRH"]								= {
 		Title								= "🏠Dorm",
 		PlayerContext						= false,	-- A single dorm is loaded at any time, so there's no point in checking a Player.
-		Position							= 2,
+		Position							= 2,		-- This ScanType is NOT used for beds and lockers, which aren't in Castle Dorms.
 		ContentType							= "3D",
 		Scan								= function()
-			-- Find a Part with a numerical name that contains an "InnerDorm" model. This doesn't exist unless a dorm is loaded, our goal.
-			local temp_foundDorm : Model?	= nil
-			for _, inst in  workspace:GetChildren() do
-				if inst:IsA("Part") and tonumber(inst.Name) and inst:FindFirstChild("InnerDorm") then temp_foundDorm = inst; break end
-			end
+			local temp_foundDorm = GetLoadedDorm()	-- Find the single loaded dorm Part (model) in the workspace. If this is nil, error out.
 			
 			-- Is a dorm loaded? If so, the list can be filled out!
 			if temp_foundDorm then
@@ -2242,7 +2364,94 @@ local SaveTypeDefs : {SaveType}			= {
 			
 			return result	-- And we're done! This SaveType only took just under 25 minutes to code, surprisingly!
 		end
-	}
+	},
+	--[[
+		TODO: This SaveType is NOT complete! Please modify it to use GetLaodedDorm() and find the furniture/models it needs
+		to save the requested model based on its "mode". Also, don't forget to compare the item's name (from its name tag
+		StringValues) to the name shown in the furniture GUI to determine if its toggle/variation info should be used to
+		name the item! (maybe consider updating THAT old function to do that, since it has all of the instance references).
+		
+		DormRH (Royale High dorm and furniture capturer)
+		Locates the currently active/"loaded" dorm then extracts the full dorm, its furniture, or a single item. Do note
+		that if the furniture customization/toggle UI is visible, this SaveType will use its toggle and variation info,
+		unless there's a mostly reliable way to determine if the targetted item is the same one the player's editing.
+		(Like clothes, furniture can have different internal and visible names, so just comparing if they're identical
+		isn't a perfect solution for some items, like halos; The "Everfriend Halo 2019"'s model is called "Valentine's
+		Halo 2019" internally, for example.)
+		
+		Expected context values:
+		[1]	Save mode ("DormAll"/"DormInner"/"FurniAll"/"FurniOne")
+		[2]	Base dorm Part name (for DormAll/DormInner/FurniAll) or item model name (its GUID)
+		[3]	Model debug ID (used as fallback if a matching name isn't found)
+		[4]	Furniture item's "accessory name"/"alias name"
+	]]--
+	["DormRH"]							= {
+		ContentType						= "3D",
+		Get								= function(_saveParams : GetFuncParams, _contextIDs : {ValidIDValues})
+			error("This SaveType isn't finished! See TODO comment in the source code.")
+			local result : Model?		= nil	-- This contains the final Model, if anything was found/cloned.
+			local ESFolder				= GetESFolders(PlayerSelectParams.SelectedPlayer.Name)
+			
+			if not ESFolder[_contextIDs[1]] then
+				if not _saveParams.WindowHasCache then	-- Hide this toast if the player's saving using the in-window save button w/ cache.
+					DisplayToast(
+						"The requested item, " .. type(_contextIDs[2]) == "string" and _contextIDs[2] or "[Unknown]" ..
+							" isn't of a valid type, or its EquippedStorage sub-folder doesn't exist here.",
+						"⛔",
+						8.125
+					)
+				end
+				error("Couldn't save this RH item.x")
+			end
+			
+			-- First, see if there's a Model with this exact title. (There almost always should be, but y'never know...)
+			local temp_model : Model?	= ESFolder[_contextIDs[1]]:FindFirstChild(_contextIDs[2])
+			
+			-- Couldn't find the Model? Scan every item in the folder, looking for the fallback debug ID.
+			if not temp_model then
+				for _, item : Model? in ESFolder[_contextIDs[1]]:GetChildren() do
+					if item:GetDebugId() == _contextIDs[3] then
+						temp_model		= item
+						break
+					end
+				end
+			end
+			
+			if not temp_model then
+				if not _saveParams.WindowHasCache then	-- Hide this toast if the player's saving using the in-window save button w/ cache.
+					DisplayToast(
+						"Apologies, but " .. type(_contextIDs[2]) == "string" and _contextIDs[2] or "[Unknown]" ..
+							" couldn't be found. The player may have unequipped it since you scanned them.",
+						"⛔",
+						8.125
+					)
+				end
+				error("Item wasn't found in the folder.x")
+			end
+			
+			--[[
+				Figure out this item's title, toggle, and variation info, and update its name and attributes appropriately.
+				Don't do this for hair and wings, which don't include their title in their Model name or a StringValue.
+			]]--
+			result = temp_model:Clone()
+			if _contextIDs[1] ~= "Hair" and _contextIDs[1] ~= "Wings" then AssignDescriptiveRHItemName(false, result) end
+			
+			--[[
+				Before giving the Model to the caller, see if the user wants to "anonymize" the item. For RH clothing (which
+				this type saves), this mainly recolors all "skin" parts to a generic light grey mannequin-like color, leaving
+				the rest of the model unchanged. (If this was CharaRH, this would also change the character's name and face.)
+			]]--
+			if SaveTypeFlag1 then
+				for _,desc : BasePart in result:GetDescendants() do
+					if desc:IsA("BasePart") and desc.Name == "coloredleg" then	-- For some reason, all skin parts have this name. 🙄
+						desc.Color = COLOR_ANON_SKIN
+					end
+				end
+			end
+			
+			return result
+		end
+	},
 }
 
 -- Scans through a game/place-specific "override list", adding/removing ScanTypes as requested.
@@ -2510,79 +2719,33 @@ function ClearList()
 end
 ClearList()
 
--- Tries to close a toast with a specific GUID. Once a toast starts fading out, this won't affect it.
-local function CloseToast(_guid)
-	if ToastData[_guid] and type(ToastData[_guid]) == "table" and	-- Ensure this toast is linked (usable) before continuing.
-		type(ToastData[_guid].GUIElement) == "userdata"
-	then
-		-- If this toast's fading in, pause that tween, then replace it with a new one that fades out.
-		if ToastData[_guid].Tween and ToastData[_guid].Tween.PlaybackState ~= Enum.PlaybackState.Completed then
-			ToastData[_guid].Tween:Pause()
-			ToastData[_guid].Tween:Destroy()
-			ToastData[_guid].Tween = nil
-		end
-		
-		-- Use a Tween to fade out the toast, then destroy it using Debris.
-		ToastData[_guid].Tween = TweenService:Create(ToastData[_guid].GUIElement, TI_TOAST_FADEOUT, {GroupTransparency = 1}):Play()
-		Debris:AddItem(ToastData[_guid].GUIElement, TI_TOAST_FADEOUT.Time)
-		ActiveToasts -= 1	-- Also, stop tracking this toast so it doesn't lead to another old toast closing itself.
-		
-		-- Remove this GUID from the list ASAP, which should stop DisplayToast()'s delayed CloseToast() call.
-		ToastData[_guid].GUIElement = nil
-		table.clear(ToastData[_guid])
-	end
-end
-
 --[[
-	<custom><nb>
-	A self-explanatory function that shows a momentary notification in the lower-right corner for a set duration. The user can
-	dismiss any toast early by clicking/tapping on its icon.
+	Clones the toast template, briefly showing a message in the middle of the screen that automatically disappears after a set amount of time.
+	If too many toasts appear, the oldest one will be immediately removed.
 ]]--
 function DisplayToast(_text : string, _icon : string, _time : number)
 	task.defer(function()
-		local newGuid			= game:GetService("HttpService"):GenerateGUID(false)
-		HighestToastNumber		+= 1
+		ToastLastNumber.Value	+= 1
+		local temp_staleToast : TextLabel? = ToastHolder:FindFirstChild("Toast" .. ToastLastNumber.Value-4)
+		if temp_staleToast then temp_staleToast:Destroy() end
 		
-		-- Clone and customize the toast template.
-		local newToast			= Template_Toast:Clone()
-		newToast.Message.Text	= type(_text) == "string" and _text or "No text was specified for this toast."
-		newToast.Icon.Text		= _icon	-- (type(_text) == "string" and _icon:len() < 3 and _icon) or "❔"
-		newToast.LayoutOrder	= HighestToastNumber
-		newToast.Visible		= true
-		newToast.Parent			= GUI_ToastBounds
+		local NewToast			= ToastTemplate:Clone()
+		NewToast.Text			= _icon .. " " .. _text
+		NewToast.TextSize		*= 2
+		NewToast.Name			= "Toast" .. tostring(ToastLastNumber.Value)
+		NewToast.Parent			= ToastHolder
+		local temp_toastTween	= TweenService:Create(
+			NewToast,
+			TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, 0, false),
+			{TextSize = ToastTemplate.TextSize}
+		)
+		temp_toastTween:Play()
+		NewToast.Visible		= true
 		
-		local Tween_FadeIn		= TweenService:Create(newToast, TI_TOAST_FADEIN, {GroupTransparency = 0})
-		ToastData[newGuid]	= {
-			GUIElement			= newToast,
-			Tween				= Tween_FadeIn
-		}
-		ActiveToasts			+= 1	-- Add this toast to the counter.
-		
-		-- If there are too many toasts visible, find the oldest one and close it.
-		if ActiveToasts > 4 then
-			local TargetInfo	= {
-				GUID			= nil,
-				LowestID		= HighestToastNumber + 1
-			}
-			for guid : string,toast in ToastData do
-				if toast.GUIElement.LayoutOrder < TargetInfo.LowestID then
-					TargetInfo.LowestID = toast.GUIElement.LayoutOrder
-					TargetInfo.Toast = guid
-				end
-			end
-			if TargetInfo.GUID then
-				CloseToast(TargetInfo.GUID)
-			end
-		end
-		
-		-- Fade in this toast, but don't let the player click/tap it to hide it early UNTIL this finishes, waiting to connect a function.
-		Tween_FadeIn:Play()
-		Tween_FadeIn.Completed:Wait()
-		Tween_FadeIn:Destroy()
-		newToast.Icon.MouseButton1Click:Connect(function() CloseToast(newGuid) end)
-		
+		-- if this toast hasn't been removed by a newer one, remove it after a delay.
 		task.wait(_time)
-		CloseToast(newGuid)	-- All toasts automatically close after a delay. This function won't run if the user closed it before this, too.
+		if NewToast and NewToast:IsDescendantOf(ToastHolder) then NewToast:Destroy() end
+		if temp_toastTween and type(temp_toastTween) == "userdata" then temp_toastTween:Destroy() end
 	end)
 end
 
@@ -2632,7 +2795,6 @@ Button_RefreshWindow.MouseButton1Click:Connect(function()
 end)
 
 --[[
-	<custom><nb><md>
 	One of the major functions in this script, which runs SaveTypes' Get() functions to clone specific Instances, moving them to a
 	specific sub-folder in Lighting (which can be saved using UniversalSynSaveInstance or my Recreation API). Although the user
 	names the first sub-folder, SaveTypes can request to save their captures to their own sub-folder. For example, RH clothes and
