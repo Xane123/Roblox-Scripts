@@ -1,7 +1,7 @@
 --[[
 	ROYALE HIGH ACCESSORY PRESERVER V2		|
 	PROUDLY MADE BY XANE MYERS IN APRIL 2025|
-	LAST UPDATED DECEMBER 23RD, 2025		|
+	LAST UPDATED DECEMBER 24TH, 2025		|
 	----------------------------------------/
 	An amazing psuedo-sequel to an already powerful script, used for saving various (mostly 3D) assets from Roblox experiences,
 	including but no longer limited to Royale High! Run this script (preferably using Infinite Fun's 'rhsave' command) then tap
@@ -25,6 +25,8 @@
 	make its "command line" appear. Write "saveplace external" (without the quotation marks) then press ENTER to launch
 	UniversalSynSaveInstance, which will do the rest of the work, putting everything in a large RBXLX file. When it's done
 	(check the white text in the upper-right corner of the screen), check your executor's workspace folder.
+	
+	To run THIS script, just enter the command "rhsave".
 	
 	Transfer the new RBXLX file to your computer and open it in Roblox Studio to check out the place/realm you saved. Anything
 	you saved using RH Accessory Preserver is placed in 💡Lighting, in the "Saved Items" folder.
@@ -356,87 +358,6 @@ temp_z_newGUI1.Parent = GUICarrier_Commands
 temp_z_newGUI1 = Instance.new("UIAspectRatioConstraint")
 temp_z_newGUI1.AspectRatio = 3.5
 temp_z_newGUI1.Parent = GUICarrier_Commands
-
-local GUI_ToastBounds = Instance.new("Frame")
-GUI_ToastBounds.AnchorPoint = Vector2.new(1, 1)
-GUI_ToastBounds.BackgroundTransparency = 1
-GUI_ToastBounds.BorderSizePixel = 0
-GUI_ToastBounds.ClipsDescendants = true
-GUI_ToastBounds.Active = false
-GUI_ToastBounds.Interactable = true
-GUI_ToastBounds.Position = UDim2.new(1, -8, 1, -8)
-GUI_ToastBounds.Size = UDim2.new(0.5, 0, 0.75, 0)
-GUI_ToastBounds.Visible = true
-GUI_ToastBounds.ZIndex = 3
-GUI_ToastBounds.Name = "ToastBounds"
-GUI_ToastBounds.Parent = GUI_Base
-
-temp_z_newGUI1 = Instance.new("UIListLayout")
-temp_z_newGUI1.Padding = UDim.new(0, 3)
-temp_z_newGUI1.HorizontalAlignment = Enum.HorizontalAlignment.Center
-temp_z_newGUI1.SortOrder = Enum.SortOrder.LayoutOrder
-temp_z_newGUI1.VerticalAlignment = Enum.VerticalAlignment.Bottom
-temp_z_newGUI1.Name = "ToastList"
-temp_z_newGUI1.Parent = GUI_ToastBounds
-
-local Template_Toast = Instance.new("CanvasGroup")
-Template_Toast.Active = true
-Template_Toast.AutomaticSize = Enum.AutomaticSize.XY
-Template_Toast.BackgroundColor3 = Color3.new(0.141176, 0.145098, 0.156863)
-Template_Toast.BorderSizePixel = 0
-Template_Toast.GroupTransparency = 1
-Template_Toast.Size = UDim2.fromScale(0.25, 0.075)
-Template_Toast.Visible = false
-Template_Toast.Name = "Template"
-Template_Toast.Parent = GUI_Base
-
-temp_z_newGUI1 = Instance.new("UIPadding")
-temp_z_newGUI1.PaddingBottom = UDim.new(0, 5)
-temp_z_newGUI1.PaddingLeft = UDim.new(0, 5)
-temp_z_newGUI1.PaddingRight = UDim.new(0, 5)
-temp_z_newGUI1.PaddingTop = UDim.new(0, 5)
-temp_z_newGUI1.Parent = Template_Toast
-
-temp_z_newGUI1 = Instance.new("UICorner")
-temp_z_newGUI1.CornerRadius = UDim.new(0.25, 0)
-temp_z_newGUI1.Parent = Template_Toast
-
-temp_z_newGUI1 = Instance.new("UIListLayout")
-temp_z_newGUI1.HorizontalFlex = Enum.UIFlexAlignment.Fill
-temp_z_newGUI1.Padding = UDim.new(0, 5)
-temp_z_newGUI1.FillDirection = Enum.FillDirection.Horizontal
-temp_z_newGUI1.Parent = Template_Toast
-
-temp_z_newGUI1 = Instance.new("TextLabel")
-temp_z_newGUI1.Font = Enum.Font.Highway
-temp_z_newGUI1.Text = "Placeholder message. (If you see this, please report it as an issue on GitHub: Xane123/Roblox-Scripts"
-temp_z_newGUI1.TextColor3 = COLOR_WHITE
-temp_z_newGUI1.TextSize = 15
-temp_z_newGUI1.TextTruncate = Enum.TextTruncate.AtEnd
-temp_z_newGUI1.TextWrapped = true
-temp_z_newGUI1.TextXAlignment = Enum.TextXAlignment.Left
-temp_z_newGUI1.AutomaticSize = Enum.AutomaticSize.XY
-temp_z_newGUI1.BackgroundColor3 = COLOR_WHITE
-temp_z_newGUI1.BackgroundTransparency = 1
-temp_z_newGUI1.BorderSizePixel = 0
-temp_z_newGUI1.Size = UDim2.new(1, 0, 0, 15)
-temp_z_newGUI1.Visible = true
-temp_z_newGUI1.Name = "Message"
-temp_z_newGUI1.Parent = Template_Toast
-
-temp_z_newGUI1 = Instance.new("TextButton")
-temp_z_newGUI1.Font = Enum.Font.Highway
-temp_z_newGUI1.Text = "⛔"
-temp_z_newGUI1.TextColor3 = COLOR_WHITE
-temp_z_newGUI1.TextScaled = true
-temp_z_newGUI1.TextWrapped = true
-temp_z_newGUI1.BackgroundTransparency = 1
-temp_z_newGUI1.BorderSizePixel = 0
-temp_z_newGUI1.Size = UDim2.fromOffset(15, 15)
-temp_z_newGUI1.SizeConstraint = Enum.SizeConstraint.RelativeYY
-temp_z_newGUI1.Visible = true
-temp_z_newGUI1.Name = "Icon"
-temp_z_newGUI1.Parent = Template_Toast
 
 local GUI_Window = Instance.new("Frame")
 GUI_Window.Active = true
@@ -881,10 +802,13 @@ temp_z_newGUI2 = Instance.new("UICorner")
 temp_z_newGUI2.CornerRadius = UDim.new(0.25, 0)
 temp_z_newGUI2.Parent = Button_RefreshWindow
 
-local ToastHolder = Instance.new("Frame")ToastHolder.BackgroundColor3 = Color3.new(1, 1, 1)
+local ToastHolder = Instance.new("Frame")
+ToastHolder.BackgroundColor3 = Color3.new(1, 1, 1)
 ToastHolder.BackgroundTransparency = 1
 ToastHolder.BorderSizePixel = 0
-ToastHolder.Size = UDim2.fromScale(1, 1)
+ToastHolder.AnchorPoint = Vector2.one
+ToastHolder.Position = UDim2.fromScale(1, 1)
+ToastHolder.Size = UDim2.fromScale(0.5, 0.5)
 ToastHolder.Visible = true
 ToastHolder.ZIndex = 10
 ToastHolder.Name = "ToastContainer"
@@ -895,11 +819,11 @@ local ToastTemplate = Instance.new("TextLabel")
 ToastTemplate.Font = Enum.Font.Highway
 ToastTemplate.Text = "This should not appear to the end user. (Hi, exploiter!)"
 ToastTemplate.TextColor3 = COLOR_WHITE
-ToastTemplate.TextSize = 28
-ToastTemplate.TextStrokeTransparency = 0
-ToastTemplate.TextTransparency = 0.375
+ToastTemplate.TextSize = 16
+ToastTemplate.TextStrokeTransparency = 0.1
+ToastTemplate.TextTransparency = 0.425
 ToastTemplate.TextWrapped = true
-ToastTemplate.TextXAlignment = Enum.TextXAlignment.Left
+ToastTemplate.TextXAlignment = Enum.TextXAlignment.Right
 ToastTemplate.TextYAlignment = Enum.TextYAlignment.Bottom
 ToastTemplate.AnchorPoint = Vector2.one / 2
 ToastTemplate.BackgroundTransparency = 1
@@ -2723,7 +2647,7 @@ ClearList()
 	Clones the toast template, briefly showing a message in the middle of the screen that automatically disappears after a set amount of time.
 	If too many toasts appear, the oldest one will be immediately removed.
 ]]--
-function DisplayToast(_text : string, _icon : string, _time : number)
+function DisplayToast(_text : string, _icon : string, _time : number, _color : Color3?)
 	task.defer(function()
 		ToastLastNumber.Value	+= 1
 		local temp_staleToast : TextLabel? = ToastHolder:FindFirstChild("Toast" .. ToastLastNumber.Value-4)
@@ -2731,7 +2655,8 @@ function DisplayToast(_text : string, _icon : string, _time : number)
 		
 		local NewToast			= ToastTemplate:Clone()
 		NewToast.Text			= _icon .. " " .. _text
-		NewToast.TextSize		*= 2
+		NewToast.TextSize		/= 3
+		NewToast.TextColor3		= _color or COLOR_WHITE
 		NewToast.Name			= "Toast" .. tostring(ToastLastNumber.Value)
 		NewToast.Parent			= ToastHolder
 		local temp_toastTween	= TweenService:Create(
