@@ -855,12 +855,15 @@ local GUI_CurrentCache						= Instance.new("Folder")
 GUI_CurrentCache.Name						= "PreviewContent"
 -- GUI_CurrentCache.Parent					= GUI_Base
 
-local function TryOrCreateFolder(_parent : Instance, _name : string) : Folder
+local function TryOrCreateFolder(_parent : Instance?, _name : string) : Folder
+	print("Received request to create a folder named", _name, "within", _parent or "[no parent?]")
 	local FolderRef : Folder?	= _parent:FindFirstChild(_name)
 	if not FolderRef then
 		FolderRef				= Instance.new("Folder")
 		FolderRef.Name			= _name
-		FolderRef.Parent		= _parent
+		FolderRef.Parent		= _parent or Lighting
+		print("It hasn't been created yet, so it was made!")
+	else print("That folder existed, and will be used!")
 	end
 	return FolderRef
 end
