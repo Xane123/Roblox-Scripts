@@ -897,6 +897,15 @@ end
 -- Also create a folder in Lighting (where I dump all of my Instances). If it's already there, use it instead of making a new one.
 local SaveBaseFolder : Folder				= TryOrCreateFolder(game:GetService("Lighting"), "Saved Items")
 
+if SaveBaseFolder then
+	print("RH Accessory Preserver's main folder was supposedly created!")
+	if game:GetService("Lighting"):FindFirstChild("Saved Items") then
+		print("It does exist!")
+	else
+		warn("But it ISN'T THERE? WHAT?")
+	end
+end
+
 -- Free up the temporary variables' values again, in case Roblox garbage-collects these Instance references.
 temp_z_newGUI1 = nil
 temp_z_newGUI2 = nil
