@@ -1,7 +1,7 @@
 --[[
 	ROYALE HIGH ACCESSORY PRESERVER V2		|
 	PROUDLY MADE BY XANE MYERS IN APRIL 2025|
-	LAST UPDATED DECEMBER 24TH, 2025		|
+	LAST UPDATED JANUARY 27TH, 2026			|
 	----------------------------------------/
 	An amazing psuedo-sequel to an already powerful script, used for saving various (mostly 3D) assets from Roblox experiences,
 	including but no longer limited to Royale High! Run this script (preferably using Infinite Fun's 'rhsave' command) then tap
@@ -88,6 +88,7 @@ local ReplicatedStorage					= game:GetService("ReplicatedStorage")
 local StarterPack						= game:GetService("StarterPack")
 local TweenService						= game:GetService("TweenService")
 local Debris							= game:GetService("Debris")
+local RunService						= game:GetService("RunService")
 
 local CamScriptURL						=	-- URL for this script's "3D preview" camera script. Could be expanded to check 2 URLs.
 	"https://raw.githubusercontent.com/Xane123/Roblox-Scripts/main/RHAccessoryPreserver/new_camScript.luau"
@@ -929,9 +930,8 @@ local SelectedIndex							= 0		-- The currently-selected ItemList index, used by
 local HighestToastNumber					= 0		-- Number incremented with each displayed toast to keep them in order, top to bottom.
 
 local SaveGroupName							= DEF_GROUP_NAME	-- Sub-folder to place the next saved item into.
-local ToastData : {ToastDefinition}
-											= {}	-- Array of references to visible, un-dismissed toast notification CanvasGroups.
-local ActiveToasts : number					= 0		-- A basic counter that tracks how many toasts are being shown to the user now.
+local Timer_ForceSave						= 0.0	-- Remaining time that the user can forcibly overwrite an existing save for.
+local HeartbeatHandler:RBXScriptConnection	= nil
 
 type TypeDataStorageTypes					= {	-- Type definition for the table below.
 	RHRefs									: {
@@ -2702,7 +2702,8 @@ local function ExitAccessoryPreserver()
 	GUI_Window.Visible			= false
 	GUICarrier_Commands.Visible	= false
 	DisplayToast("Thank you. Have a nice day/night!", "👋", 2.25)
-	task.wait(2.5)
+	if HeartbeatHandler then HeartbeatHandler:Disconnect(); HeartbeatHandler = nil; end
+	task.wait(3.25)
 	
 	GUI_Base:Destroy()
 	script:Destroy()
@@ -2800,17 +2801,23 @@ local function SaveItem(_fallbackCache : boolean, _override : boolean)
 				FinalItem:SetAttribute("XReq_ItemFolder", nil)	-- Now that it has been referenced, let's remove the "folder" attribute.
 			end
 			
-			-- Before continuing, see if an Instance with the same name is in the Folder. Only replace it if you're allowed to override.
+			--[[
+				Before continuing, see if an Instance with the same name is in the Folder. Only replace it if you're allowed to override.
+				If an instance with the same name has already been saved, the user will have a few seconds to tap the save button again to
+				forcibly replace it.
+			]]--
 			local temp_duplicate				= CaptureFolder:FindFirstChild(FinalItem.Name)
 			if temp_duplicate then
-				if not _override then	-- If we can't override the existing Instance, execution ends here.
-					DisplayToast(FinalItem.Name .. " is already saved in that sub-folder. To replace it, " ..
-						GetLongTapText() .. " the save button.",
-						"🙅",
-						9.5
+				if Timer_ForceSave <= 0 then
+					DisplayToast(FinalItem.Name .. " is already saved. Tap the button again to replace it.",
+						"❔",
+						5
 					)
-					error("Couldn't move the item.x")	-- This error shouldn't appear, as it just stops execution without success.
+					Button_SaveCmd.Text			= "⚡"	-- Change the save button's icon to signal the "mode change". (The heartbeat code resets it.)
+					Timer_ForceSave				= 5	-- Let the user replace the existing model if they try this again within 5 seconds.
+					error("The item was already saved. Prompting to overwrite..x")	-- This error won't appear as a toast itself since it ends in 'x'.
 				else
+					Timer_ForceSave				= 0	-- Immediately clear the replacement timer when anything's added to the folder.
 					temp_duplicate:Destroy()	-- Immediately remove the original item, which is being replaced.
 				end
 			end
@@ -2860,7 +2867,25 @@ GUI_GroupNameBox.FocusLost:Connect(function(_enterPressed, _lossInput)
 			)
 		end
 	else
+		if IsBusy then
+			DisplayToast(
+				"An action was ongoing while attempting to change the group's name. Please try again.",
+				"❌",
+				4.675
+			)
+		end
 		GUI_GroupNameBox.Text = SaveGroupName
+	end
+end)
+
+-- If the temporary "replace/overwrite mode" timer's not 0, decrease it every frame/heartbeat until it is.
+HeartbeatHandler		= RunService.Heartbeat:Connect(function(_delta)
+	if Timer_ForceSave > 0 then
+		Timer_ForceSave -= _delta
+		if Timer_ForceSave <= 0 then
+			Timer_ForceSave = 0
+			Button_SaveCmd.Text = "💾"
+		end
 	end
 end)
 
