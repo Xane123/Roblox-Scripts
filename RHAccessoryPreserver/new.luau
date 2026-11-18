@@ -89,6 +89,7 @@ local StarterPack						= game:GetService("StarterPack")
 local TweenService						= game:GetService("TweenService")
 local Debris							= game:GetService("Debris")
 local RunService						= game:GetService("RunService")
+local UserInputService					= game:GetService("UserInputService")
 
 local CamScriptURL						=	-- URL for this script's "3D preview" camera script. Could be expanded to check 2 URLs.
 	"https://raw.githubusercontent.com/Xane123/Roblox-Scripts/main/RHAccessoryPreserver/new_camScript.luau"
@@ -931,7 +932,8 @@ local HighestToastNumber					= 0		-- Number incremented with each displayed toas
 
 local SaveGroupName							= DEF_GROUP_NAME	-- Sub-folder to place the next saved item into.
 local Timer_ForceSave						= 0.0	-- Remaining time that the user can forcibly overwrite an existing save for.
-local HeartbeatHandler:RBXScriptConnection	= nil
+local HeartbeatHandler:RBXScriptConnection?	= nil
+local InputEvent : RBXScriptConnection?		= nil
 
 type TypeDataStorageTypes					= {	-- Type definition for the table below.
 	RHRefs									: {
@@ -2701,8 +2703,9 @@ local function ExitAccessoryPreserver()
 	ClearList()
 	GUI_Window.Visible			= false
 	GUICarrier_Commands.Visible	= false
-	DisplayToast("Thank you. Have a nice day/night!", "👋", 2.25)
+	DisplayToast("Thank you for using RH Accessory Preserver!", "👋", 2.25)
 	if HeartbeatHandler then HeartbeatHandler:Disconnect(); HeartbeatHandler = nil; end
+	if InputEvent then InputEvent:Disconnect(); InputEvent = nil; end
 	task.wait(3.25)
 	
 	GUI_Base:Destroy()
@@ -2854,6 +2857,24 @@ Button_SaveWindow.TouchLongPress:Connect(function()		SaveItem(true, true)	end)
 Button_SaveCmd.MouseButton1Click:Connect(function()		SaveItem(false, false)	end)
 Button_SaveCmd.MouseButton2Click:Connect(function()		SaveItem(false, true)	end)
 Button_SaveCmd.TouchLongPress:Connect(function()		SaveItem(false, true)	end)
+
+--[[
+	This script was  originally designed for mobile executors, and therefore doesn't have keyboard controls,
+	but since I'm going to use Real to save RH's newest set (if possible), it would take ages using the mouse,
+	so the N and M keys are intercepted here, running the same function as left and right clicking on the
+	Command Bar's save button, respectively.
+
+	TODO: Eventually, consider adding more fleshed out keyboard shortcuts. Add code that detects when a
+	modifier key's held (setting a bool variable to track it), and only save models while it's held, so those
+	keys are still availiable for other scripts and RH (animation key-binds and pianos).
+]]--
+InputEvent = UserInputService.InputEnded:Connect(function(_input : InputObject, _handled : boolean)
+	if _input.UserInputType == Enum.UserInputType.Keyboard and _input.KeyCode == Enum.KeyCode.N then
+		SaveItem(false, false)	-- N saves the selected "live" object without forcibly replacing a previous save. (It's like left-clicking the bar button.)
+	elseif _input.UserInputType == Enum.UserInputType.Keyboard and _input.KeyCode == Enum.KeyCode.M then
+		SaveItem(false, true)	-- M WILL replace a saved model, like right-clicking the Command Bar's save button.
+	end
+end)
 
 GUI_GroupNameBox.FocusLost:Connect(function(_enterPressed, _lossInput)
 	if _enterPressed and not IsBusy then
