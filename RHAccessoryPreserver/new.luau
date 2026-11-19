@@ -1,7 +1,7 @@
 --[[
 	ROYALE HIGH ACCESSORY PRESERVER V2		|
 	PROUDLY MADE BY XANE MYERS IN APRIL 2025|
-	LAST UPDATED JANUARY 27TH, 2026			|
+	LAST UPDATED NOVEMBER 19TH, 2026			|
 	----------------------------------------/
 	An amazing psuedo-sequel to an already powerful script, used for saving various (mostly 3D) assets from Roblox experiences,
 	including but no longer limited to Royale High! Run this script (preferably using Infinite Fun's 'rhsave' command) then tap
@@ -1107,6 +1107,9 @@ local VarOverrideDB							= {
 	["Avrilla's Combat Doll Boots"]			= {
 		["(1/3) Garters: No Straps"]		= 2,	-- Variation category 1
 		["(1/3) Garters: Off"]				= 3
+	},
+	["Cinder's Revelry Blaze-Beaded Bodice"]= {		-- T2 messed up the numbering, unlike T1.
+		["(1/2) Jewel Glow: On"]			= 2,	-- Variation category 3
 	}
 }
 
