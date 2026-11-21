@@ -1,7 +1,7 @@
 --[[
 	ROYALE HIGH ACCESSORY PRESERVER V2		|
 	PROUDLY MADE BY XANE MYERS IN APRIL 2025|
-	LAST UPDATED NOVEMBER 19TH, 2026			|
+	LAST UPDATED NOVEMBER 21ST, 2026		|
 	----------------------------------------/
 	An amazing psuedo-sequel to an already powerful script, used for saving various (mostly 3D) assets from Roblox experiences,
 	including but no longer limited to Royale High! Run this script (preferably using Infinite Fun's 'rhsave' command) then tap
@@ -126,10 +126,11 @@ local DEF_GROUP_NAME	= "Untitled Group"	-- Initial save sub-folder's name
 local COLOR_WHITE		= Color3.new(1, 1, 1)
 local COLOR_ANON_SKIN	= Color3.new(192, 192, 192)
 
-local R15_BODY_PARTS	= {	-- The standard R15 body part names
+local R15_BODY_PARTS	= {	-- The standard R15 body part names, along with RH's special FakeHead. I hope this doesn't break a non-RH char...
 	"LowerTorso",
 	"UpperTorso",
 	"Head",
+	"FakeHead",	-- RH's duplicate head mesh, added after Roblox's 2026 dynamic head update. It's what you see as most players' "heads" now.
 	"LeftUpperArm",
 	"LeftLowerArm",
 	"LeftHand",
@@ -1029,7 +1030,7 @@ type FixRHCharParams	= {
 }
 
 local function FixRHCharacter(_root : Model, _param : FixRHCharParams)
-	for _,desc : MeshPart in _root:GetDescendants() do
+	for _,desc : Instance in _root:GetDescendants() do
 		if desc:IsA("BasePart") and desc.Name == "coloredleg" and _param.SkinTone then	-- All "coloredleg" parts are always recolored.
 			desc.Color = COLOR_ANON_SKIN
 		elseif _param.DoExtraChecks then
@@ -1047,7 +1048,7 @@ local function FixRHCharacter(_root : Model, _param : FixRHCharParams)
 					end
 				end
 			elseif desc:IsA("Decal") and desc.Parent and	-- If allowed, change their face texture(s)!
-				desc.Parent.Name == "Head" and _param.Face
+				(desc.Parent.Name == "Head" or desc.Parent.Name == "FakeHead") and _param.Face
 			then
 				if desc.Name == "face" then desc.Texture = "rbxassetid://144080495"	-- Forcibly use the default smile texture.
 				elseif table.find(RH_FACE_DECALS, desc.Name) then desc:Destroy()	-- Remove any extra RH face layers.
